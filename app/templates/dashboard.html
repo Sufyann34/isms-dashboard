@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISMS Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #eef2f7;
+            --panel: #ffffff;
+            --panel-soft: #f8fafc;
+            --ink: #172033;
+            --muted: #667085;
+            --line: #d9e2ec;
+            --blue: #2563eb;
+            --green: #16845f;
+            --amber: #b56a00;
+            --red: #c2413d;
+            --violet: #6d5bd0;
+            --shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background:
+                linear-gradient(135deg, rgba(37, 99, 235, 0.10), transparent 38%),
+                linear-gradient(315deg, rgba(22, 132, 95, 0.12), transparent 34%),
+                var(--bg);
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: 248px minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding: 24px 18px;
+            background: #111827;
+            color: #f9fafb;
+        }
+
+        .brand {
+            display: grid;
+            gap: 4px;
+            padding: 4px 8px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .brand strong {
+            font-size: 18px;
+        }
+
+        .brand span {
+            color: #b7c0d4;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: grid;
+            gap: 8px;
+            margin-top: 22px;
+        }
+
+        .nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: #dbe4f0;
+        }
+
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.10);
+            color: #ffffff;
+        }
+
+        .nav-icon {
+            width: 9px;
+            height: 9px;
+            border-radius: 99px;
+            background: currentColor;
+        }
+
+        main {
+            padding: 28px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 22px;
+        }
+
+        .eyebrow {
+            color: var(--blue);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            max-width: 780px;
+            margin: 6px 0 8px;
+            font-size: 34px;
+            line-height: 1.15;
+        }
+
+        .hero p {
+            max-width: 720px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.78);
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .metric-card,
+        .panel,
+        .form-panel {
+            background: rgba(255, 255, 255, 0.90);
+            border: 1px solid rgba(217, 226, 236, 0.9);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            min-height: 132px;
+            padding: 18px;
+        }
+
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 6px;
+            background: var(--accent);
+        }
+
+        .metric-card p {
+            margin: 0 0 12px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .number {
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .metric-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .subtle {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 290px;
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .form-panel {
+            padding: 16px;
+        }
+
+        .form-panel h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        form {
+            display: grid;
+            gap: 10px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--ink);
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--blue);
+            outline: 3px solid rgba(37, 99, 235, 0.12);
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 14px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--blue);
+            color: #ffffff;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .button:hover {
+            filter: brightness(0.95);
+        }
+
+        .delete-button {
+            min-width: 38px;
+            min-height: 36px;
+            padding: 8px 10px;
+            border: 1px solid rgba(194, 65, 61, 0.22);
+            border-radius: 8px;
+            background: #fff4f2;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .table-panel {
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #edf1f5;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f6f8fb;
+            color: #475467;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0;
+        }
+
+        tbody tr:hover {
+            background: #f9fbfd;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .badge-low,
+        .badge-closed {
+            background: #e7f7ef;
+            color: var(--green);
+        }
+
+        .badge-medium {
+            background: #fff5df;
+            color: var(--amber);
+        }
+
+        .badge-in-progress {
+            background: #eef2ff;
+            color: var(--violet);
+        }
+
+        .badge-high,
+        .badge-critical,
+        .badge-open {
+            background: #fff0ee;
+            color: var(--red);
+        }
+
+        .badge-unknown {
+            background: #eef2f7;
+            color: var(--muted);
+        }
+
+        .actions {
+            width: 1%;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            padding: 24px 16px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        @media (max-width: 1100px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+            }
+
+            .nav {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .cards,
+            .form-grid,
+            .chart-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 700px) {
+            main {
+                padding: 18px;
+            }
+
+            .hero {
+                display: grid;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .cards,
+            .form-grid,
+            .dashboard-grid,
+            .chart-row,
+            .nav {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <strong>ISMS Dashboard</strong>
+            <span>Risk and vulnerability command center</span>
+        </div>
+        <nav class="nav" aria-label="Dashboard navigation">
+            <a href="#overview"><span class="nav-icon"></span>Overview</a>
+            <a href="#add-records"><span class="nav-icon"></span>Add Records</a>
+            <a href="#systems"><span class="nav-icon"></span>Systems</a>
+            <a href="#risks"><span class="nav-icon"></span>Risks</a>
+            <a href="#vulnerabilities"><span class="nav-icon"></span>Vulnerabilities</a>
+        </nav>
+    </aside>
+
+    <main>
+        <section class="hero" id="overview">
+            <div>
+                <div class="eyebrow">Security operations</div>
+                <h1>ISMS Risk & Vulnerability Management Dashboard</h1>
+                <p>Track critical systems, prioritize risk, and keep remediation work visible across services like Payment Service.</p>
+            </div>
+            <div class="status-pill">Live dashboard</div>
+        </section>
+
+        <section class="cards" aria-label="Dashboard summary">
+            <div class="metric-card" style="--accent: var(--blue);">
+                <p>Total Systems</p>
+                <div class="number">{{ total_systems }}</div>
+                <div class="metric-note">Managed services and platforms</div>
+            </div>
+            <div class="metric-card" style="--accent: var(--violet);">
+                <p>Total Risks</p>
+                <div class="number">{{ total_risks }}</div>
+                <div class="metric-note">Registered risk statements</div>
+            </div>
+            <div class="metric-card" style="--accent: var(--red);">
+                <p>High Risks</p>
+                <div class="number">{{ high_risks }}</div>
+                <div class="metric-note">Need priority treatment</div>
+            </div>
+            <div class="metric-card" style="--accent: var(--green);">
+                <p>Open Vulnerabilities</p>
+                <div class="number">{{ open_vulnerabilities }}</div>
+                <div class="metric-note">Still awaiting closure</div>
+            </div>
+        </section>
+
+        <section class="dashboard-grid" aria-label="Charts">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Exposure by System</h2>
+                        <div class="subtle">Risk and vulnerability volume per system</div>
+                    </div>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="systemsChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Risk Levels</h2>
+                            <div class="subtle">Low, medium, and high split</div>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="riskChart"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Vulnerabilities</h2>
+                            <div class="subtle">Current status distribution</div>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="vulnerabilityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="add-records" class="form-grid" aria-label="Add records">
+            <div class="form-panel">
+                <h3>Add System</h3>
+                <form action="/systems" method="post">
+                    <input name="name" placeholder="System name, e.g. Payment Service" required>
+                    <input name="owner" placeholder="Owner" required>
+                    <button class="button" type="submit">Add System</button>
+                </form>
+            </div>
+
+            <div class="form-panel">
+                <h3>Add Risk</h3>
+                <form action="/risks" method="post">
+                    <input name="description" placeholder="Risk description" required>
+                    <input name="likelihood" type="number" min="1" max="3" placeholder="Likelihood 1-3" required>
+                    <input name="impact" type="number" min="1" max="3" placeholder="Impact 1-3" required>
+                    <select name="system_id" required>
+                        <option value="" disabled selected>Select system</option>
+                        {% for system in systems %}
+                        <option value="{{ system.id }}">{{ system.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="button" type="submit">Add Risk</button>
+                </form>
+            </div>
+
+            <div class="form-panel">
+                <h3>Add Vulnerability</h3>
+                <form action="/vulnerabilities" method="post">
+                    <input name="title" placeholder="Vulnerability title" required>
+                    <select name="severity" required>
+                        <option value="" disabled selected>Select severity</option>
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                        <option>Critical</option>
+                    </select>
+                    <select name="status" required>
+                        <option value="" disabled selected>Select status</option>
+                        <option>Open</option>
+                        <option>In Progress</option>
+                        <option>Closed</option>
+                    </select>
+                    <input name="remediation_plan" placeholder="Remediation plan" required>
+                    <select name="system_id" required>
+                        <option value="" disabled selected>Select system</option>
+                        {% for system in systems %}
+                        <option value="{{ system.id }}">{{ system.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="button" type="submit">Add Vulnerability</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="systems" class="panel table-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Systems</h2>
+                    <div class="subtle">Services under ISMS monitoring</div>
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>System Name</th>
+                        <th>Owner</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for system in systems %}
+                    <tr>
+                        <td>{{ system.id }}</td>
+                        <td><strong>{{ system.name }}</strong></td>
+                        <td>{{ system.owner }}</td>
+                        <td class="actions">
+                            <form action="/systems/{{ system.id }}/delete" method="post" onsubmit="return confirm('Delete this system and its linked risks and vulnerabilities?');">
+                                <button class="delete-button" type="submit" title="Delete system">x</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No systems have been added yet.</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="risks" class="panel table-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Risks</h2>
+                    <div class="subtle">Scored by likelihood multiplied by impact</div>
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Description</th>
+                        <th>Likelihood</th>
+                        <th>Impact</th>
+                        <th>Score</th>
+                        <th>Level</th>
+                        <th>System</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for risk in risks %}
+                    {% set score = risk.likelihood * risk.impact %}
+                    {% if score > 6 %}
+                        {% set level = "High" %}
+                    {% elif score > 3 %}
+                        {% set level = "Medium" %}
+                    {% else %}
+                        {% set level = "Low" %}
+                    {% endif %}
+                    <tr>
+                        <td>{{ risk.id }}</td>
+                        <td>{{ risk.description }}</td>
+                        <td>{{ risk.likelihood }}</td>
+                        <td>{{ risk.impact }}</td>
+                        <td><strong>{{ score }}</strong></td>
+                        <td><span class="badge badge-{{ level|lower }}">{{ level }}</span></td>
+                        <td>{{ system_names.get(risk.system_id, "System #" ~ risk.system_id) }}</td>
+                        <td class="actions">
+                            <form action="/risks/{{ risk.id }}/delete" method="post" onsubmit="return confirm('Delete this risk?');">
+                                <button class="delete-button" type="submit" title="Delete risk">x</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="empty-state">No risks have been added yet.</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="vulnerabilities" class="panel table-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Vulnerabilities</h2>
+                    <div class="subtle">Open findings and remediation plans</div>
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Remediation Plan</th>
+                        <th>System</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for vuln in vulnerabilities %}
+                    {% set severity = vuln.severity|lower %}
+                    {% set status = vuln.status|lower|replace(" ", "-") %}
+                    <tr>
+                        <td>{{ vuln.id }}</td>
+                        <td><strong>{{ vuln.title }}</strong></td>
+                        <td><span class="badge badge-{{ severity }}">{{ vuln.severity }}</span></td>
+                        <td><span class="badge badge-{{ status }}">{{ vuln.status }}</span></td>
+                        <td>{{ vuln.remediation_plan }}</td>
+                        <td>{{ system_names.get(vuln.system_id, "System #" ~ vuln.system_id) }}</td>
+                        <td class="actions">
+                            <form action="/vulnerabilities/{{ vuln.id }}/delete" method="post" onsubmit="return confirm('Delete this vulnerability?');">
+                                <button class="delete-button" type="submit" title="Delete vulnerability">x</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="empty-state">No vulnerabilities have been added yet.</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const riskLevels = {{ risk_levels|tojson }};
+    const vulnerabilityStatuses = {{ vulnerability_statuses|tojson }};
+    const systemsChart = {{ systems_chart|tojson }};
+
+    const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    boxWidth: 12,
+                    color: "#475467",
+                    font: { weight: "700" }
+                }
+            }
+        }
+    };
+
+    new Chart(document.getElementById("systemsChart"), {
+        type: "bar",
+        data: {
+            labels: systemsChart.map((item) => item.name),
+            datasets: [
+                {
+                    label: "Risks",
+                    data: systemsChart.map((item) => item.risks),
+                    backgroundColor: "#6d5bd0",
+                    borderRadius: 8
+                },
+                {
+                    label: "Vulnerabilities",
+                    data: systemsChart.map((item) => item.vulnerabilities),
+                    backgroundColor: "#2563eb",
+                    borderRadius: 8
+                }
+            ]
+        },
+        options: {
+            ...chartDefaults,
+            scales: {
+                x: { grid: { display: false }, ticks: { color: "#667085" } },
+                y: { beginAtZero: true, ticks: { precision: 0, color: "#667085" } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById("riskChart"), {
+        type: "doughnut",
+        data: {
+            labels: Object.keys(riskLevels),
+            datasets: [{
+                data: Object.values(riskLevels),
+                backgroundColor: ["#16845f", "#b56a00", "#c2413d"],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...chartDefaults,
+            cutout: "64%"
+        }
+    });
+
+    new Chart(document.getElementById("vulnerabilityChart"), {
+        type: "polarArea",
+        data: {
+            labels: Object.keys(vulnerabilityStatuses),
+            datasets: [{
+                data: Object.values(vulnerabilityStatuses),
+                backgroundColor: ["#c2413d", "#b56a00", "#16845f", "#6d5bd0", "#2563eb"]
+            }]
+        },
+        options: {
+            ...chartDefaults,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, backdropColor: "transparent", color: "#667085" },
+                    grid: { color: "#d9e2ec" }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
